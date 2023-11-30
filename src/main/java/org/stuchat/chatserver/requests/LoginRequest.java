@@ -1,4 +1,4 @@
-package org.stuchat.chatserver.dtos;
+package org.stuchat.chatserver.requests;
 
 import lombok.Data;
 

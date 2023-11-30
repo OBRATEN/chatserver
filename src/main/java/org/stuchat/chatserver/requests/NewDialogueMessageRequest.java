@@ -1,4 +1,4 @@
-package org.stuchat.chatserver.dtos;
+package org.stuchat.chatserver.requests;
 
 import lombok.Data;
 
@@ -7,12 +7,12 @@ import java.time.Instant;
 
 @Data
 public class NewDialogueMessageRequest {
-    private String friend;
+    private Long dialogueId;
     private String content;
     private Timestamp date;
 
-    public NewDialogueMessageRequest(String friend, String content) {
-        this.friend = friend;
+    public NewDialogueMessageRequest(Long dialogueId, String content) {
+        this.dialogueId = dialogueId;
         this.content = content;
         this.date = Timestamp.from(Instant.now());
     }

@@ -1,5 +1,4 @@
-package org.stuchat.chatserver.dtos;
-
+package org.stuchat.chatserver.requests;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,6 +7,6 @@ import lombok.RequiredArgsConstructor;
 @Data
 @AllArgsConstructor
 @RequiredArgsConstructor
-public class MessageListRequest {
-    private String friend;
+public class UserInfoRequest {
+    private String username;
 }

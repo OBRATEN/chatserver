@@ -1,4 +1,4 @@
-package org.stuchat.chatserver.dtos;
+package org.stuchat.chatserver.responses;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 @RequiredArgsConstructor
 public class DialogueResponse {
-    String id;
+    Long id;
     String friendName;
     String lastMessage;
     String lastDate;

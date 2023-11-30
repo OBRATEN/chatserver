@@ -53,7 +53,8 @@ public class SecurityConfig {
                                 mvc.pattern("/"),
                                 mvc.pattern("/home"),
                                 mvc.pattern("/signup"),
-                                mvc.pattern("/signin")
+                                mvc.pattern("/signin"),
+                                mvc.pattern("/info/user")
                         ).permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated()

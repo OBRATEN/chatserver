@@ -11,7 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.stuchat.chatserver.dtos.*;
+import org.stuchat.chatserver.responses.*;
 import org.stuchat.chatserver.entities.Dialogue;
 import org.stuchat.chatserver.entities.Message;
 import org.stuchat.chatserver.entities.Role;
@@ -21,6 +21,7 @@ import org.stuchat.chatserver.repositories.DialogueRepository;
 import org.stuchat.chatserver.repositories.MessageRepository;
 import org.stuchat.chatserver.repositories.RoleRepository;
 import org.stuchat.chatserver.repositories.UserRepository;
+import org.stuchat.chatserver.requests.*;
 
 import java.util.*;
 
@@ -65,7 +66,7 @@ public class MainController {
         for (Dialogue dia: dialoguesList) {
             if (messageRepository.existsByDialogueId(dia.getId())) {
                 responseList.add(new DialogueResponse(
-                                dia.getId().toString(),
+                                dia.getId(),
                                 userRepository.findById(
                                         (Objects.equals(dia.getUser1Id(), user_id)) ? dia.getUser2Id() : dia.getUser1Id()
                                 ).get().getUsername(),
@@ -75,7 +76,7 @@ public class MainController {
                 );
             } else {
                 responseList.add(new DialogueResponse(
-                        dia.getId().toString(),
+                        dia.getId(),
                         userRepository.findById(
                                 (Objects.equals(dia.getUser1Id(), user_id)) ? dia.getUser2Id() : dia.getUser1Id()
                         ).get().getUsername(),
@@ -86,13 +87,27 @@ public class MainController {
         return ResponseEntity.ok(new DialogueListResponse(responseList));
     }
 
+    @GetMapping("/info/user")
+    public ResponseEntity<?> getUserInfo(@RequestParam String username) {
+        if (!userRepository.existsByUsername(username)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new CommonResponse("No such user found"));
+        }
+        User user = userRepository.findByUsername(username).orElseThrow();
+        UserInfoResponse response = new UserInfoResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail()
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/get/dialogue")
     public ResponseEntity<?> getDialogue(Authentication authentication,
-                                         @RequestBody MessageListRequest request) {
+                                         @RequestParam String username) {
         Long userId = userRepository.findByUsername(
                 ((UserDetails)authentication.getPrincipal()).getUsername()
         ).get().getId();
-        Long friendId = userRepository.findByUsername(request.getFriend()).get().getId();
+        Long friendId = userRepository.findByUsername(username).get().getId();
         boolean isUserStarted = false;
         boolean dialogueExists = false;
         if (dialogueRepository.existsByUser1IdAndUser2Id(userId, friendId)) {
@@ -107,7 +122,7 @@ public class MainController {
             List<Message> messageList = messageRepository.findAllByDialogueId(dialogueId);
             List<MessageResponse> responseList = new ArrayList<>();
             if (messageList.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new CommonResponse("Empty dialogue"));
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new MessageListResponse());
             } else {
                 for (Message message : messageList) {
                     responseList.add(new MessageResponse(
@@ -120,7 +135,7 @@ public class MainController {
                 return ResponseEntity.ok(new MessageListResponse(responseList));
             }
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new CommonResponse("No such dialogue"));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new CommonResponse("Dialogue not found"));
         }
     }
 
@@ -145,29 +160,15 @@ public class MainController {
     @PostMapping("/new/message/to_dialogue")
     public ResponseEntity<?> newMessageDialogue(Authentication authentication,
                                                 @RequestBody NewDialogueMessageRequest request) {
-        if (!userRepository.existsByUsername(request.getFriend())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new CommonResponse("User not found"));
+        if (!dialogueRepository.existsById(request.getDialogueId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new CommonResponse("No such dialogue"));
         }
         Long userId = userRepository.findByUsername(
                 ((UserDetails)authentication.getPrincipal()).getUsername()
         ).get().getId();
-        Long friendId = userRepository.findByUsername(request.getFriend()).get().getId();
-        boolean isUserStarted = false;
-        boolean isDialogueExists = false;
-        if (dialogueRepository.existsByUser1IdAndUser2Id(userId, friendId)) {
-            isUserStarted = true;
-            isDialogueExists = true;
-        } else if (dialogueRepository.existsByUser1IdAndUser2Id(friendId, userId)) {
-            isUserStarted = false;
-            isDialogueExists = true;
-        }
-        if (!isDialogueExists) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new CommonResponse("No such dialogue"));
-        Long dialogueId;
-        if (isUserStarted) dialogueId = dialogueRepository.findByUser1IdAndUser2Id(userId, friendId).get().getId();
-        else dialogueId = dialogueRepository.findByUser1IdAndUser2Id(friendId, userId).get().getId();
         Message message = new Message(
-                dialogueId,
-                (isUserStarted) ? userId : friendId,
+                request.getDialogueId(),
+                userId,
                 request.getContent()
         );
         messageRepository.save(message);

@@ -12,6 +12,7 @@ public interface MessageRepository extends CrudRepository<Message, Long> {
     boolean existsById(Long id);
     Optional<Message> findByDialogueId(Long dialogueId);
     List<Message> findAllByDialogueId(Long dialogueId);
+    boolean existsAllByDialogueId(Long dialogueId);
     boolean existsByDialogueId(Long id);
 
     Optional<Message> findTopByDialogueId(Long id);
