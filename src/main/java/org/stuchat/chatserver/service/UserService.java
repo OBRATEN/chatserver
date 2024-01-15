@@ -21,6 +21,23 @@ public class UserService implements UserDetailsService {
     private RoleService roleService;
     private PasswordEncoder passwordEncoder;
 
+    public void saveUser(User user) {
+        user.setOnline(true);
+        userRepository.save(user);
+    }
+
+    public void disconnect(User user) {
+        User storedUser = userRepository.findById(user.getId()).orElse(null);
+        if (storedUser != null) {
+            storedUser.setOnline(false);
+            userRepository.save(storedUser);
+        }
+    }
+
+    public List<User> findAllByOnline(boolean online) {
+        return userRepository.findAllByOnline(online);
+    }
+
     @Autowired
     public void setUserRepository(UserRepository userRepository) {
         this.userRepository = userRepository;

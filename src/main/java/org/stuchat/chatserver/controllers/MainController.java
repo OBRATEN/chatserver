@@ -24,6 +24,7 @@ import org.stuchat.chatserver.repositories.UserRepository;
 import org.stuchat.chatserver.requests.*;
 
 import java.util.*;
+import java.util.stream.StreamSupport;
 
 @RestController
 @RequiredArgsConstructor
@@ -62,10 +63,10 @@ public class MainController {
         if (dialoguesList.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new CommonResponse("No dialogues yet"));
         }
-        List<DialogueResponse> responseList = new ArrayList<>();
+        List<ChatInfoResponse> responseList = new ArrayList<>();
         for (Dialogue dia: dialoguesList) {
             if (messageRepository.existsByDialogueId(dia.getId())) {
-                responseList.add(new DialogueResponse(
+                responseList.add(new ChatInfoResponse(
                                 dia.getId(),
                                 userRepository.findById(
                                         (Objects.equals(dia.getUser1Id(), user_id)) ? dia.getUser2Id() : dia.getUser1Id()
@@ -75,7 +76,7 @@ public class MainController {
                         )
                 );
             } else {
-                responseList.add(new DialogueResponse(
+                responseList.add(new ChatInfoResponse(
                         dia.getId(),
                         userRepository.findById(
                                 (Objects.equals(dia.getUser1Id(), user_id)) ? dia.getUser2Id() : dia.getUser1Id()
@@ -84,7 +85,7 @@ public class MainController {
                 ));
             }
         }
-        return ResponseEntity.ok(new DialogueListResponse(responseList));
+        return ResponseEntity.ok(new ChatInfoListResponse(responseList));
     }
 
     @GetMapping("/info/user")
@@ -99,6 +100,15 @@ public class MainController {
                 user.getEmail()
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/get/userList/byUsername")
+    public  ResponseEntity<?> getUserByUsername(@RequestParam String username) {
+        List<FindUserResponse> userList = new ArrayList<FindUserResponse>();
+        StreamSupport.stream(userRepository.findAll().spliterator(), false)
+                .filter(el -> el.getUsername().startsWith(username))
+                .forEach(el -> userList.add(new FindUserResponse(el.getId(), el.getUsername())));
+        return ResponseEntity.ok(new FindUserListResponse(userList));
     }
 
     @GetMapping("/get/dialogue")
@@ -155,8 +165,9 @@ public class MainController {
         }
         Dialogue dialogue = new Dialogue(userId, friendId);
         dialogueRepository.save(dialogue);
-        return ResponseEntity.ok(new CommonResponse("Diaogue created"));
+        return ResponseEntity.ok(new CommonResponse("Dialogue created"));
     }
+
     @PostMapping("/new/message/to_dialogue")
     public ResponseEntity<?> newMessageDialogue(Authentication authentication,
                                                 @RequestBody NewDialogueMessageRequest request) {
@@ -190,7 +201,8 @@ public class MainController {
         User user = new User(
                 signupRequest.getUsername(),
                 signupRequest.getEmail(),
-                passwordEncoder.encode(signupRequest.getPassword())
+                passwordEncoder.encode(signupRequest.getPassword()),
+                true
         );
         Set<Role> roles = new HashSet<>();
         Role role = roleRepository.findByName("Student")
@@ -198,15 +210,23 @@ public class MainController {
         roles.add(role);
         user.setRoles(roles);
         userRepository.save(user);
-        return ResponseEntity.ok(new CommonResponse("User created"));
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        signupRequest.getUsername(),
+                        signupRequest.getPassword()
+                )
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateToken(authentication);
+        return ResponseEntity.ok(new JwtResponse(jwt));
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<?> createTokenMapping(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> createTokenMapping(@RequestBody SigninRequest signinRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        loginRequest.getUsername(),
-                        loginRequest.getPassword()
+                        signinRequest.getUsername(),
+                        signinRequest.getPassword()
                 )
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);

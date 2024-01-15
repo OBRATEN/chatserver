@@ -25,11 +25,15 @@ public class User {
     @Column(name = "password")
     private String password;
 
+    @Column(name = "online")
+    private Boolean online;
+
     public User() {}
-    public User(String username, String email, String password) {
+    public User(String username, String email, String password, Boolean online) {
         this.username = username;
         this.email = email;
         this.password = password;
+        this.online = online;
     }
 
     @ManyToMany

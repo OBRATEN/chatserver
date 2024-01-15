@@ -2,6 +2,7 @@ package org.stuchat.chatserver.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -11,6 +12,7 @@ import java.util.Collection;
 @Data
 @AllArgsConstructor
 @RequiredArgsConstructor
+@Builder
 @Table(name = "dialogues")
 public class Dialogue {
     @Id

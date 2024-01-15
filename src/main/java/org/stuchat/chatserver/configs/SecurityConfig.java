@@ -18,9 +18,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 import org.stuchat.chatserver.jwt.JwtRequestFilter;
 import org.stuchat.chatserver.service.UserService;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -46,6 +51,18 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setAllowedMethods(List.of("HEAD", "GET", "POST", "PUT", "DELETE", "PATCH"));
+        config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .authorizeHttpRequests((request) -> request
@@ -54,16 +71,19 @@ public class SecurityConfig {
                                 mvc.pattern("/home"),
                                 mvc.pattern("/signup"),
                                 mvc.pattern("/signin"),
-                                mvc.pattern("/info/user")
+                                mvc.pattern("/info/user"),
+                                mvc.pattern("/user"),
+                                mvc.pattern("/hello"),
+                                mvc.pattern("/ws/**")
                         ).permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .httpBasic(Customizer.withDefaults())
                 .formLogin(Customizer.withDefaults())
-                .sessionManagement((management) -> management.sessionCreationPolicy(SessionCreationPolicy.NEVER))
+                .sessionManagement((management) -> management.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .exceptionHandling((handling) -> handling.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
